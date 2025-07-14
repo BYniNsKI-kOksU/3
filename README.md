@@ -1,1 +1,324 @@
-# 3
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Badacz roku przestępnego</title>
+  <style>
+    :root{
+      --clr-bg:#317873;
+      --clr-fg:#F0F0F0;
+      --clr-fg-his:#F0EFEF;
+      --clr-fg-en:#E07A5F;
+      --clr-anim:#FF0000;
+      --clr-accent:#7289da;
+      --clr-prz:#E07A5F;
+      --clr-lang:#4BB5A8;
+    }
+    html,body{
+      margin:0;
+      padding:0;
+      background:var(--clr-bg);
+      color:var(--clr-fg);
+      font-family:Arial, sans-serif;
+      height:100%;
+    }
+    .container{
+      max-width:550px;
+      margin:0 auto;
+      padding:20px;
+      text-align:center;
+    }
+    h1{
+      font-size:32px;
+      margin:10px 0 20px;
+    }
+    label{
+      font-size:13px;
+      font-weight:bold;
+    }
+    input[type="number"]{
+      display:block;
+      width:220px;
+      margin:5px auto 15px;
+      padding:10px;
+      font-size:16px;
+      font-family:"ADLaM Display", sans-serif;
+      text-align:center;
+      border:none;
+      border-radius:20px;
+      background:#ffffff;
+      color:var(--clr-fg-en);
+    }
+    .round-btn{
+      display:inline-block;
+      padding:12px 24px;
+      background:var(--clr-prz);
+      color:#fff;
+      font-family:"Jumble",sans-serif;
+      font-size:12px;
+      font-weight:bold;
+      border:none;
+      border-radius:15px;
+      cursor:pointer;
+      transition:.2s;
+    }
+    .round-btn:hover{
+      background:#F2E8CF;
+      color:#000;
+    }
+    #output{
+      margin:20px 0;
+      min-height:24px;
+      font-family:"Aptos Black", sans-serif;
+      font-size:18px;
+    }
+    #history-wrapper{margin-top:10px;}
+    #history-title{
+      font-size:13px;
+      font-weight:bold;
+      margin-bottom:5px;
+    }
+    #history-box{
+      width:320px;
+      height:170px;
+      margin:0 auto;
+      background:var(--clr-fg-his);
+      color:var(--clr-fg-en);
+      border-radius:20px;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column-reverse;
+      justify-content:flex-end;
+      padding:10px;
+      font-family:"Aptos Black", sans-serif;
+      font-size:13px;
+      white-space:pre-wrap;
+    }
+    .lang-container {
+  position:fixed;
+  top:10px;
+  right:60px;
+}
+
+.lang-btn {
+  position:relative;
+  z-index:10;
+}
+
+.lang-menu {
+  position:absolute;
+  top:100%;
+  right:0;
+  background:#F0F0F0;
+  color:var(--clr-prz);
+  border:1px solid #d0d0d0;
+  border-radius:4px;
+  font:bold 10px/1 Arial;
+  display:none;
+  z-index:1000;
+}
+
+    .lang-menu div{
+      padding:6px 12px;
+      cursor:pointer;
+    }
+    .lang-menu div:hover{
+      background:#D7E9E6;
+      color:#000;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 id="title">Badacz roku przestępnego</h1>
+
+    <label id="prompt" for="year">Podaj rok:</label>
+    <input id="year" type="number">
+
+    <button id="check" class="round-btn">Oblicz</button>
+
+    <div id="output"></div>
+
+    <div id="history-wrapper">
+      <div id="history-title">Historia:</div>
+      <div id="history-box"></div>
+    </div>
+  </div>
+
+  <div class="lang-container">
+  <button id="lang-btn" class="round-btn lang-btn">📘</button>
+  <div id="lang-menu" class="lang-menu">
+    <div data-lang="pl">Polski PL</div>
+    <div data-lang="en">English GB</div>
+  </div>
+
+
+  <script>
+    /* ---------- TŁUMACZENIA ---------- */
+    const translations = {
+      pl: {
+        title: "Badacz roku przestępnego",
+        prompt: "Podaj rok:",
+        button: "Oblicz",
+        history: "Historia:",
+        error: "Wprowadź poprawny rok (liczbę całkowitą).",
+        yes: "To {verb} rok przestępny",
+        no: "To nie {verb} rok przestępny",
+        verbs: {past:"był", present:"jest", future:"będzie"}
+      },
+      en: {
+        title: "Leap Year Investigator",
+        prompt: "Enter year:",
+        button: "Check",
+        history: "History:",
+        error: "Enter a valid integer year.",
+        yes: "It {verb} a leap year",
+        no: "It is not {verb} a leap year",
+        verbs: {past:"was", present:"is", future:"will be"}
+      }
+    };
+    let currentLang="pl";
+
+    /* ---------- GLOBAL ---------- */
+    let poprzedniWynik="";
+    const historia=[];
+    const MAX_HISTORIA=10;
+    const animDelay=60;
+
+    /* ---------- LOGIKA ---------- */
+    function isLeapYear(y){return (y%400===0)|| (y%4===0 && y%100!==0);}
+    function getVerb(year,lang){
+      const now=(new Date()).getFullYear();
+      const tense=year<now?"past":year===now?"present":"future";
+      return translations[lang].verbs[tense];
+    }
+
+    /* ---------- UI ---------- */
+    const yearInput=document.getElementById("year");
+    const outputDiv=document.getElementById("output");
+    const historyBox=document.getElementById("history-box");
+    const titleEl=document.getElementById("title");
+    const promptEl=document.getElementById("prompt");
+    const checkBtn=document.getElementById("check");
+    const historyTitle=document.getElementById("history-title");
+    const langBtn=document.getElementById("lang-btn");
+    const langMenu=document.getElementById("lang-menu");
+
+    /* ---------- ANIM DIFF ---------- */
+    function lcs(a,b){
+      const m=a.length,n=b.length;
+      const dp=Array.from({length:m+1},()=>Array(n+1).fill(0));
+      for(let i=m-1;i>=0;i--){
+        for(let j=n-1;j>=0;j--){
+          dp[i][j]=a[i]===b[j]?dp[i+1][j+1]+1:Math.max(dp[i+1][j],dp[i][j+1]);
+        }
+      }
+      const res=[];
+      let i=0,j=0;
+      while(i<m&&j<n){
+        if(a[i]===b[j]){
+          res.push({word:b[j],equal:true});
+          i++;j++;
+        }else if(dp[i+1][j]>=dp[i][j+1]){
+          res.push({word:b[j],equal:false});
+          j++;
+        }else{
+          i++;
+        }
+      }
+      while(j<n){res.push({word:b[j],equal:false});j++;}
+      return res;
+    }
+    function animateChangeWords(newStr,oldStr){
+      const newWords=newStr.split(" ");
+      const oldWords=oldStr.split(" ");
+      const diff=lcs(oldWords,newWords);
+      outputDiv.innerHTML="";
+      const spans=[];
+      diff.forEach(d=>{
+        const span=document.createElement("span");
+        span.style.padding="0 4px";
+        span.textContent=d.equal?d.word+" ":"";
+        span.style.color=d.equal?"":"var(--clr-anim)";
+        outputDiv.appendChild(span);
+        spans.push({span,text:d.word,animate:!d.equal});
+      });
+      function animateWord(idx=0){
+        while(idx<spans.length && !spans[idx].animate){idx++;}
+        if(idx>=spans.length)return;
+        const {span,text}=spans[idx];
+        function typeChar(pos=0){
+          if(pos<=text.length){
+            span.textContent=text.slice(0,pos)+(pos===text.length?" ":"");
+            if(pos===text.length)span.style.color="var(--clr-fg)";
+            setTimeout(()=>typeChar(pos+1),animDelay);
+          }else{
+            animateWord(idx+1);
+          }
+        }
+        typeChar();
+      }
+      animateWord();
+    }
+
+    /* ---------- HISTORIA ---------- */
+    function animateToHistory(str,idx=0){
+      if(idx===0)historyBox.insertAdjacentHTML("beforeend","<br>");
+      if(idx<str.length){
+        historyBox.insertAdjacentText("beforeend",str[idx]);
+        historyBox.scrollTop=historyBox.scrollHeight;
+        setTimeout(()=>animateToHistory(str,idx+1),animDelay);
+      }
+    }
+    function updateHistory(year,result){
+      const entry=`${year}: ${result}`;
+      historia.unshift(entry);
+      if(historia.length>MAX_HISTORIA)historia.pop();
+      historyBox.textContent="";
+      [...historia].reverse().slice(1).forEach(e=>{
+        historyBox.insertAdjacentText("beforeend",e+"\n");
+      });
+      animateToHistory(entry);
+    }
+
+    /* ---------- AKCJE ---------- */
+    function przestepny(){
+      const lang=translations[currentLang];
+      const yr=parseInt(yearInput.value.trim(),10);
+      if(isNaN(yr)){
+        alert(lang.error);
+        return;
+      }
+      const verb=getVerb(yr,currentLang);
+      const result=isLeapYear(yr)?lang.yes.replace("{verb}",verb):lang.no.replace("{verb}",verb);
+      animateChangeWords(result,poprzedniWynik);
+      updateHistory(yr,result);
+      poprzedniWynik=result;
+    }
+    checkBtn.addEventListener("click",przestepny);
+    yearInput.addEventListener("keydown",e=>{if(e.key==="Enter")przestepny();});
+
+    /* ---------- JĘZYK ---------- */
+    function switchLang(code){
+      currentLang=code;
+      const l=translations[code];
+      titleEl.textContent=l.title;
+      promptEl.textContent=l.prompt;
+      checkBtn.textContent=l.button;
+      historyTitle.textContent=l.history;
+      document.title=l.title;
+      langMenu.style.display="none";
+    }
+    langBtn.addEventListener("click",()=>{
+      langMenu.style.display=langMenu.style.display==="block"?"none":"block";
+    });
+    langMenu.addEventListener("click",e=>{
+      if(e.target.dataset.lang)switchLang(e.target.dataset.lang);
+    });
+    document.addEventListener("click",e=>{
+      if(!langMenu.contains(e.target)&&e.target!==langBtn)langMenu.style.display="none";
+    });
+  </script>
+</body>
+</html>
